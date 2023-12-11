@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/sagernet/sing-box/common/urltest"
-	"github.com/sagernet/sing-dns"
+	dns "github.com/sagernet/sing-dns"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/sagernet/sing/common/rw"
 )
@@ -109,6 +109,7 @@ type OutboundGroup interface {
 	Outbound
 	Now() string
 	All() []string
+	SelectedOutbound(network string) Outbound
 }
 
 type URLTestGroup interface {
