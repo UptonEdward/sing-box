@@ -58,6 +58,9 @@ require (
 require github.com/ipsn/go-libtor v1.0.380 // indirect
 
 //replace github.com/sagernet/sing => ../sing
+replace github.com/sagernet/sing-dns v0.2.0-beta.18 => github.com/puernya/sing-dns v0.0.0-20240515072300-7fecf778f6fd
+
+replace github.com/sagernet/sing v0.4.0-beta.20 => github.com/puernya/sing v0.0.0-20240525191832-11e4c80962e9
 
 require (
 	github.com/ajg/form v1.5.1 // indirect
