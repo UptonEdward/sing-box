@@ -1,16 +1,9 @@
 name: Publish Docker Images
 
 on:
-  release:
-    types:
-      - published
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "The tag version you want to build"
-
-env:
-  REGISTRY_IMAGE: ghcr.io/sagernet/sing-box
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -95,13 +88,9 @@ jobs:
           fi
           echo "latest=$latest"
           echo "latest=$latest" >> $GITHUB_OUTPUT
-      - name: Download digests
-        uses: actions/download-artifact@v4
-        with:
-          path: /tmp/digests
-          pattern: digests-*
-          merge-multiple: true
-      - name: Set up Docker Buildx
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -109,14 +98,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
-        run: |
-          docker buildx imagetools create \
-            -t "${{ env.REGISTRY_IMAGE }}:${{ steps.ref.outputs.latest }}" \
-            -t "${{ env.REGISTRY_IMAGE }}:${{ steps.ref.outputs.ref }}" \
-            $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
-      - name: Inspect image
-        run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.ref.outputs.latest }}
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${{ steps.ref.outputs.ref }}
+      - name: Docker metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/uptonedward/sing-box
+      - name: Build and release Docker images
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64
+          target: dist
+          context: .
+          build-args: |
+            BUILDKIT_CONTEXT_KEEP_GIT_DIR=1
+          tags: |
+            ghcr.io/uptonedward/sing-box:latest
+            ghcr.io/uptonedward/sing-box:${{ github.ref_name }}
+          push: true
+          provenance: false
