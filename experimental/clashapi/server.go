@@ -141,6 +141,7 @@ func NewServer(ctx context.Context, router adapter.Router, logFactory log.Observ
 			})
 		})
 	} else if options.ExternalUIBuildin {
+		//nolint:staticcheck
 		f, err := initDashboard()
 		if err != nil {
 			return nil, err
