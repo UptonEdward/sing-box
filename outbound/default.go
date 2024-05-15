@@ -71,6 +71,7 @@ func (a *myOutboundAdapter) NewError(ctx context.Context, err error) {
 func (a *myOutboundAdapter) OpenConnection() {
 	a.connCount++
 }
+
 func (a *myOutboundAdapter) CloseConnection() {
 	a.connCount--
 	if a.closeSlow {
