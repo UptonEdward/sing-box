@@ -25,6 +25,8 @@ type Router interface {
 	Outbound(tag string) (Outbound, bool)
 	DefaultOutbound(network string) (Outbound, error)
 
+	Transport(tag string) (dns.Transport, bool)
+
 	FakeIPStore() FakeIPStore
 
 	ConnectionRouter
@@ -57,7 +59,7 @@ type Router interface {
 	Rule(uuid string) (Rule, bool)
 	DNSRules() []DNSRule
 	DNSRule(uuid string) (DNSRule, bool)
-	DefaultDNSServer() string
+	DefaultDNSServers() []string
 
 	ClashServer() ClashServer
 	SetClashServer(server ClashServer)
@@ -99,12 +101,13 @@ type Rule interface {
 
 type DNSRule interface {
 	Rule
-	MatchFallback(metadata *InboundContext, index int) (bool, string, string, int)
+	MatchFallback(metadata *InboundContext, index int) (bool, []string, string, int)
 	DisableCache() bool
 	RewriteTTL() *uint32
 	ClientSubnet() *netip.Prefix
 	WithAddressLimit() bool
 	MatchAddressLimit(metadata *InboundContext) bool
+	Servers() []string
 }
 
 type RuleSet interface {
