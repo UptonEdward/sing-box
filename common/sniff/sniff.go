@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
@@ -13,9 +14,14 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 )
 
+type SniffData struct {
+	metadata *adapter.InboundContext
+	err      error
+}
+
 type (
-	StreamSniffer = func(ctx context.Context, reader io.Reader) (*adapter.InboundContext, error)
-	PacketSniffer = func(ctx context.Context, packet []byte) (*adapter.InboundContext, error)
+	StreamSniffer = func(ctx context.Context, reader io.Reader, sniffdata chan SniffData)
+	PacketSniffer = func(ctx context.Context, packet []byte, sniffdata chan SniffData)
 )
 
 func PeekStream(ctx context.Context, conn net.Conn, buffer *buf.Buffer, timeout time.Duration, sniffers ...StreamSniffer) (*adapter.InboundContext, error) {
@@ -24,7 +30,6 @@ func PeekStream(ctx context.Context, conn net.Conn, buffer *buf.Buffer, timeout 
 	}
 	deadline := time.Now().Add(timeout)
 	var errors []error
-
 	for i := 0; i < 3; i++ {
 		err := conn.SetReadDeadline(deadline)
 		if err != nil {
@@ -38,12 +43,29 @@ func PeekStream(ctx context.Context, conn net.Conn, buffer *buf.Buffer, timeout 
 			}
 			return nil, E.Cause(err, "read payload")
 		}
+		sniffdatas := make(chan SniffData, len(sniffers))
+		var wg sync.WaitGroup
 		for _, sniffer := range sniffers {
-			metadata, err := sniffer(ctx, bytes.NewReader(buffer.Bytes()))
-			if metadata != nil {
-				return metadata, nil
+			wg.Add(1)
+			go func() {
+				sniffer(ctx, bytes.NewReader(buffer.Bytes()), sniffdatas)
+				wg.Done()
+			}()
+		}
+		defer func() {
+			go func() {
+				wg.Wait()
+				close(sniffdatas)
+			}()
+		}()
+		for i := 0; i < len(sniffers); i++ {
+			data := <-sniffdatas
+			if data.metadata != nil {
+				return data.metadata, nil
 			}
-			errors = append(errors, err)
+			if data.err != nil {
+				errors = append(errors, data.err)
+			}
 		}
 	}
 	return nil, E.Errors(errors...)
@@ -51,12 +73,37 @@ func PeekStream(ctx context.Context, conn net.Conn, buffer *buf.Buffer, timeout 
 
 func PeekPacket(ctx context.Context, packet []byte, sniffers ...PacketSniffer) (*adapter.InboundContext, error) {
 	var errors []error
+	sniffdatas := make(chan SniffData, len(sniffers))
+	var wg sync.WaitGroup
 	for _, sniffer := range sniffers {
-		metadata, err := sniffer(ctx, packet)
-		if metadata != nil {
-			return metadata, nil
+		wg.Add(1)
+		go func() {
+			sniffer(ctx, packet, sniffdatas)
+			wg.Done()
+		}()
+	}
+	defer func() {
+		go func() {
+			wg.Wait()
+			close(sniffdatas)
+		}()
+	}()
+	for i := 0; i < len(sniffers); i++ {
+		data := <-sniffdatas
+		if data.metadata != nil {
+			return data.metadata, nil
 		}
-		errors = append(errors, err)
+		if data.err != nil {
+			errors = append(errors, data.err)
+		}
 	}
 	return nil, E.Errors(errors...)
+}
+
+func (d *SniffData) GetMetadata() adapter.InboundContext {
+	return *d.metadata
+}
+
+func (d *SniffData) GetErr() error {
+	return d.err
 }
