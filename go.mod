@@ -55,7 +55,7 @@ require (
 	howett.net/plist v1.0.1
 )
 
-require github.com/ipsn/go-libtor v1.0.380 // indirect
+require github.com/ipsn/go-libtor v1.0.380
 
 //replace github.com/sagernet/sing => ../sing
 replace github.com/sagernet/sing-dns v0.2.0-beta.18 => github.com/puernya/sing-dns v0.0.0-20240515072300-7fecf778f6fd
