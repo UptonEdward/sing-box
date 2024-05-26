@@ -1,8 +1,9 @@
 package betterjson
 
 import (
-	"github.com/hjson/hjson-go/v4"
 	"github.com/sagernet/sing/common/json"
+
+	"github.com/hjson/hjson-go/v4"
 	"gopkg.in/yaml.v3"
 )
 
