@@ -82,6 +82,7 @@ type Router struct {
 	dnsReverseMapping                  *DNSReverseMapping
 	fakeIPStore                        adapter.FakeIPStore
 	interfaceFinder                    *control.DefaultInterfaceFinder
+	stopAlwaysResolveUDP               bool
 	autoDetectInterface                bool
 	defaultInterface                   string
 	defaultMark                        uint32
@@ -129,6 +130,7 @@ func NewRouter(
 		defaultDetour:         options.Final,
 		defaultDomainStrategy: dns.DomainStrategy(dnsOptions.Strategy),
 		interfaceFinder:       control.NewDefaultInterfaceFinder(),
+		stopAlwaysResolveUDP:  options.StopAlwaysResolveUDP,
 		autoDetectInterface:   options.AutoDetectInterface,
 		defaultInterface:      options.DefaultInterface,
 		defaultMark:           options.DefaultMark,
@@ -1154,7 +1156,37 @@ func (r *Router) RoutePacketConnection(ctx context.Context, conn N.PacketConn, m
 	if metadata.FakeIP {
 		conn = bufio.NewNATPacketConn(bufio.NewNetPacketConn(conn), metadata.OriginDestination, metadata.Destination)
 	}
+	if r.mustResolve(detour, &metadata) {
+		addresses, err := r.LookupDefault(adapter.WithContext(ctx, &metadata), metadata.Destination.Fqdn)
+		if err != nil {
+			return err
+		}
+		metadata.DestinationAddresses = addresses
+		r.dnsLogger.DebugContext(ctx, "resolved [", strings.Join(F.MapToString(metadata.DestinationAddresses), " "), "]")
+	}
 	return detour.NewPacketConnection(ctx, conn, metadata)
+}
+
+func (r *Router) mustResolve(detour adapter.Outbound, metadata *adapter.InboundContext) bool {
+	if metadata.IsResolved {
+		return false
+	}
+	if r.stopAlwaysResolveUDP {
+		return false
+	}
+	if !metadata.Destination.IsFqdn() {
+		return false
+	}
+	if len(metadata.DestinationAddresses) > 0 {
+		return false
+	}
+	tag := O.RealOutboundTag(detour, N.NetworkUDP)
+	outbound, _ := r.Outbound(tag)
+	switch outbound.Type() {
+	case C.TypeBlock, C.TypeDNS:
+		return false
+	}
+	return true
 }
 
 func (r *Router) match(ctx context.Context, metadata *adapter.InboundContext, defaultOutbound adapter.Outbound) (context.Context, adapter.Rule, adapter.Outbound, error) {
@@ -1206,7 +1238,7 @@ func (r *Router) match0(ctx context.Context, metadata *adapter.InboundContext, d
 	}
 	var outbound adapter.Outbound
 	defer func() {
-		if resolveStatus == 1 && !r.mustUseIP(outbound, metadata.Network) {
+		if resolveStatus == 1 && !r.mustUseIP(outbound, metadata) {
 			metadata.DestinationAddresses = []netip.Addr{}
 		}
 	}()
@@ -1217,6 +1249,7 @@ func (r *Router) match0(ctx context.Context, metadata *adapter.InboundContext, d
 			resolveStatus = 2
 			if err == nil {
 				resolveStatus = 1
+				metadata.IsResolved = true
 				metadata.DestinationAddresses = addresses
 			}
 			metadata.ResetRuleCache()
@@ -1235,14 +1268,24 @@ func (r *Router) match0(ctx context.Context, metadata *adapter.InboundContext, d
 	return nil, outbound
 }
 
-func (r *Router) mustUseIP(outbound adapter.Outbound, network string) bool {
+func (r *Router) mustUseIP(outbound adapter.Outbound, metadata *adapter.InboundContext) bool {
+	network := metadata.Network
 	tag := O.RealOutboundTag(outbound, network)
 	detour, _ := r.Outbound(tag)
-	d, ok := detour.(adapter.OutboundUseIP)
-	if !ok {
+	if d, ok := detour.(adapter.OutboundUseIP); ok {
+		return d.UseIP()
+	}
+	if network == N.NetworkTCP {
 		return false
 	}
-	return d.UseIP()
+	if r.stopAlwaysResolveUDP {
+		return false
+	}
+	switch detour.Type() {
+	case C.TypeBlock, C.TypeDNS:
+		return false
+	}
+	return true
 }
 
 func (r *Router) InterfaceFinder() control.InterfaceFinder {
