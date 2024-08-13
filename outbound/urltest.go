@@ -193,6 +193,20 @@ func (s *URLTest) Now() string {
 	return ""
 }
 
+func (s *URLTest) SelectedOutbound(network string) adapter.Outbound {
+	switch network {
+	case N.NetworkTCP:
+		if s.group.selectedOutboundTCP != nil {
+			return s.group.selectedOutboundTCP
+		}
+	case N.NetworkUDP:
+		if s.group.selectedOutboundUDP != nil {
+			return s.group.selectedOutboundUDP
+		}
+	}
+	return s.group.outbounds[0]
+}
+
 func (s *URLTest) All() []string {
 	var all []string
 	for _, outbound := range s.group.outbounds {
