@@ -20,3 +20,7 @@ type Outbound interface {
 	NewPacketConnection(ctx context.Context, conn N.PacketConn, metadata InboundContext) error
 	SetTag(tag string)
 }
+
+type OutboundUseIP interface {
+	UseIP() bool
+}
