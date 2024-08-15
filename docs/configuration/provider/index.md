@@ -10,7 +10,7 @@
       "tag": "",
       "path": "",
       "enable_healthcheck": false,
-      "healthcheck_url": "https://www.gstatic.com/generate_204",
+      "healthcheck_url": "https://cp.cloudflare.com/generate_204",
       "healthcheck_interval": "1m",
       "healthcheck_when_network_change": false,
       
@@ -49,7 +49,7 @@ Health check will always happen in init status.
 
 The url for health check of the outbound provider.
 
-Default is `https://www.gstatic.com/generate_204`.
+Default is `https://cp.cloudflare.com/generate_204`.
 
 #### healthcheck_interval
 

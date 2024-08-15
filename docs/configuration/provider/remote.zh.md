@@ -5,7 +5,7 @@
   "type": "remote",
   "tag": "remote",
   "path": "./remote.json",
-  "healthcheck_url": "https://www.gstatic.com/generate_204",
+  "healthcheck_url": "https://cp.cloudflare.com/generate_204",
   "healthcheck_interval": "1m",
 
   "download_url": "http://www.baidu.com",
