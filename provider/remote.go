@@ -67,7 +67,7 @@ func NewRemoteProvider(ctx context.Context, router adapter.Router, logger log.Co
 		ua = "sing-box " + C.Version + "; PuerNya fork"
 	}
 	if healthcheckUrl == "" {
-		healthcheckUrl = "https://www.gstatic.com/generate_204"
+		healthcheckUrl = "https://cp.cloudflare.com/generate_204"
 	}
 	if healthcheckInterval == 0 {
 		healthcheckInterval = C.DefaultURLTestInterval

@@ -33,7 +33,7 @@ func NewLocalProvider(ctx context.Context, router adapter.Router, logger log.Con
 	interval := time.Duration(localOptions.HealthcheckInterval)
 	healthcheckUrl := localOptions.HealthcheckUrl
 	if healthcheckUrl == "" {
-		healthcheckUrl = "https://www.gstatic.com/generate_204"
+		healthcheckUrl = "https://cp.cloudflare.com/generate_204"
 	}
 	if interval == 0 {
 		interval = C.DefaultURLTestInterval
