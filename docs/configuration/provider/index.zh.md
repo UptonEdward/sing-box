@@ -10,7 +10,7 @@
       "tag": "",
       "path": "",
       "enable_healthcheck": false,
-      "healthcheck_url": "https://www.gstatic.com/generate_204",
+      "healthcheck_url": "https://cp.cloudflare.com/generate_204",
       "healthcheck_interval": "1m",
       "healthcheck_when_network_change": false,
 
@@ -49,7 +49,7 @@
 
 出站提供者健康检查的地址。
 
-默认为 `https://www.gstatic.com/generate_204`。
+默认为 `https://cp.cloudflare.com/generate_204`。
 
 #### healthcheck_interval
 
