@@ -101,3 +101,8 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
+
+replace (
+	github.com/sagernet/quic-go v0.46.0-beta.4 => github.com/uptonedward/quic-go v0.46.0-beta.4.1
+	github.com/sagernet/sing-quic v0.3.0-beta.3 => github.com/uptonedward/sing-quic v0.3.0-beta.3.1
+)
