@@ -20,6 +20,7 @@ import (
 	E "github.com/sagernet/sing/common/exceptions"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
+	"github.com/sagernet/sing/common/uot"
 )
 
 var (
@@ -30,6 +31,8 @@ var (
 type Hysteria2 struct {
 	myOutboundAdapter
 	client *hysteria2.Client
+
+	udpStream bool
 }
 
 func NewHysteria2(ctx context.Context, router adapter.Router, logger log.ContextLogger, tag string, options option.Hysteria2OutboundOptions) (*Hysteria2, error) {
@@ -85,6 +88,8 @@ func NewHysteria2(ctx context.Context, router adapter.Router, logger log.Context
 			dependencies: withDialerDependency(options.DialerOptions),
 		},
 		client: client,
+
+		udpStream: options.UDPOverStream,
 	}, nil
 }
 
@@ -94,6 +99,17 @@ func (h *Hysteria2) DialContext(ctx context.Context, network string, destination
 		h.logger.InfoContext(ctx, "outbound connection to ", destination)
 		return h.client.DialConn(ctx, destination)
 	case N.NetworkUDP:
+		if h.udpStream {
+			h.logger.InfoContext(ctx, "outbound stream packet connection to ", destination)
+			streamConn, err := h.client.DialConn(ctx, uot.RequestDestination(uot.Version))
+			if err != nil {
+				return nil, err
+			}
+			return uot.NewLazyConn(streamConn, uot.Request{
+				IsConnect:   true,
+				Destination: destination,
+			}), nil
+		}
 		conn, err := h.ListenPacket(ctx, destination)
 		if err != nil {
 			return nil, err
@@ -105,6 +121,17 @@ func (h *Hysteria2) DialContext(ctx context.Context, network string, destination
 }
 
 func (h *Hysteria2) ListenPacket(ctx context.Context, destination M.Socksaddr) (net.PacketConn, error) {
+	if h.udpStream {
+		h.logger.InfoContext(ctx, "outbound stream packet connection to ", destination)
+		streamConn, err := h.client.DialConn(ctx, uot.RequestDestination(uot.Version))
+		if err != nil {
+			return nil, err
+		}
+		return uot.NewLazyConn(streamConn, uot.Request{
+			IsConnect:   false,
+			Destination: destination,
+		}), nil
+	}
 	h.logger.InfoContext(ctx, "outbound packet connection to ", destination)
 	return h.client.ListenPacket(ctx)
 }
