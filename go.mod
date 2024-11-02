@@ -101,6 +101,4 @@ require (
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-replace (
-	github.com/sagernet/quic-go => github.com/uptonedward/quic-go v0.48.0-beta.1.1
-)
+replace github.com/sagernet/quic-go => github.com/uptonedward/quic-go v0.48.0-beta.1.1
