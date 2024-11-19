@@ -77,6 +77,13 @@ func startACME(ctx context.Context, options option.InboundACMEOptions) (*tls.Con
 		AltTLSALPNPort:          int(options.AlternativeTLSPort),
 		Logger:                  config.Logger,
 	}
+
+	if acmeServer == certmagic.LetsEncryptProductionCA {
+		acmeConfig.PreferredChains = certmagic.ChainPreference{
+			RootCommonName: []string{"ISRG Root X2"},
+		}
+	}
+
 	if dnsOptions := options.DNS01Challenge; dnsOptions != nil && dnsOptions.Provider != "" {
 		var solver certmagic.DNS01Solver
 		switch dnsOptions.Provider {
